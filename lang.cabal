@@ -1,0 +1,63 @@
+cabal-version:      2.4
+name:               lang
+version:            0.1.0.0
+synopsis:
+homepage:
+license:            MIT
+license-file:       LICENSE
+author:             ankrisac
+maintainer:         ankrisac@gmail.com
+
+-- A copyright notice.
+-- copyright:
+category:           Language
+extra-source-files: CHANGELOG.md
+
+common deps
+    build-depends: 
+        base ^>=4.14.3.0,
+        bytestring ^>=0.11.3.0,
+        process
+    default-language: Haskell2010
+    default-extensions:
+        LambdaCase          
+        NumericUnderscores  
+        ScopedTypeVariables 
+
+        PolyKinds
+        DataKinds
+
+        TypeOperators
+
+        PartialTypeSignatures
+        DefaultSignatures
+
+        TypeFamilyDependencies
+
+        FlexibleContexts
+        FlexibleInstances
+
+        DeriveGeneric
+        DerivingVia
+        DeriveAnyClass  
+        GeneralisedNewtypeDeriving
+        StandaloneDeriving
+        
+library
+    import: deps
+    hs-source-dirs:   src
+    exposed-modules:  Elf, Encode
+
+
+executable lang
+    import: deps
+    hs-source-dirs:   app
+    main-is:          Main.hs
+    build-depends: lang
+
+
+test-suite lang-test
+    import: deps
+    hs-source-dirs:   test
+    main-is:          Test.hs
+    type:             exitcode-stdio-1.0
