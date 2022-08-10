@@ -1,14 +1,9 @@
-module Encode
-(
-  EncodeLE(..),
-  EncodeBE(..),
-  Encode(..),
-  Put(..),
-  U8(..), 
-  U16(..), 
-  U32(..), 
-  U64(..)
-) where
+{- |
+  This module provides serialization primitives whose 
+  endian is tied to the Encoder rather than the data 
+  structures themselves.
+-}
+module Encode where
 
 import qualified Data.ByteString         as B
 import qualified Data.ByteString.Builder as B
@@ -18,9 +13,11 @@ import           GHC.Generics
 
 
 
+-- | Little endian encoder
 newtype EncodeLE = EncodeLE { encodeLE :: B.Builder }
   deriving newtype (Semigroup, Monoid)
 
+-- | Big-endian encoder
 newtype EncodeBE = EncodeBE { encodeBE :: B.Builder }
   deriving newtype (Semigroup, Monoid)
 
@@ -102,6 +99,22 @@ instance Put Int64 where put = i64
 
 enum :: (Enum a, Integral b) => a -> b
 enum = fromIntegral . fromEnum
+
+-- * Enum serialization 
+{- $enumSerialization
+
+  'U8', 'U16', 'U32', 'U64' can be used to derive 'Put' for Enums
+  as follows. 
+
+  The size of 'fromEnum' is not checked however, so 
+  it may result in over/underflow.
+
+  @
+  data Color = Red | Green | Blue
+    deriving Enum
+    deriving Put via U32 Color -- serialize Color as a Word32
+  @
+-}
 
 newtype U8 a  = U8 a
 newtype U16 a = U16 a

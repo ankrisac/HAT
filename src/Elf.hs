@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Elf (demo) where
+module Elf where
 
 import           Data.Int                (Int16, Int32, Int64, Int8)
 import           Data.Semigroup          (stimes)
@@ -54,7 +54,12 @@ instance Elf W64 where
   sint = i64
   getWidth _ = W64
 
-
+{-
+  According to the System-V ABI, 'Abi' can specify non-standard 
+  layouts or sizes for the main/segment/section headers, but we're
+  ignoring that here, since only serialization (with no extensions)
+  is required. 
+-} 
 headSize, progSize, sectSize :: Num p => Width -> p
 headSize W32 = 0x34
 headSize W64 = 0x40
@@ -95,9 +100,7 @@ instance Elf w => Put (Head w) where
 
 
 
-newtype Flags = Flags Word32
-  deriving newtype Put 
-
+-- | Corresponds to (e_ident, e_type, e_machine) in the ELF specification
 data Target = Target Width Endian Abi EType Machine
 
 instance Put Target where
@@ -114,42 +117,55 @@ instance Put Target where
       magic = u8 0x7F <> bytes "ELF"
       padding = stimes 7 (u8 0)
 
-
-
-data Endian = LE | BE
+data Endian 
+  = LE -- 2's compliment little-endian 
+  | BE -- 2's compliment big-endian
 
 instance Put Endian where
   put LE = u8 1
   put BE = u8 2
 
-data Width = W32 | W64
+-- | Processor Architecture width
+data Width 
+  = W32 -- ^ 32-bit machines 
+  | W64 -- ^ 64-bit machines
 
 instance Put Width where
   put W32 = u8 1
   put W64 = u8 2
 
-
+{- | 
+  OS/Abi-specific ELF extensions used in the file. 
+  0 indicates unspecified version of 'Abi'
+-}
 data Abi = Abi OS Word8
   deriving (Generic, Put)
 
+{- |
+  Standard Extensions (ie. those other than 'SysV') are only here 
+  for completeness. They are currently are untested
+
+  Values of 'OSExt' in the range 64-255 are interpreted with
+  reference to the value of the 'Machine' field in 'Target' 
+-}
 data OS
-  = SysV
-  | HP_UX
+  = SysV     -- ^ No Extensions
+  | HP_UX    -- ^ HP Unix
   | NetBSD
   | GNU
-  | Solaris
+  | Solaris  -- ^ Sun/Oracle Solaris
   | AIX
   | IRIX
   | FreeBSD
-  | Tru64
-  | Modesto
+  | Tru64    -- ^ Compaq Tru64 UNIX
+  | Modesto  -- ^ Novello Modesto
   | OpenBSD
   | OpenVMS
-  | HP_NSK
-  | AROS
-  | Fenix
-  | CloudABI
-  | OpenVOS
+  | HP_NSK   -- ^ HP Non-Stop Kernel
+  | AROS     -- ^ Amiga Research OS
+  | Fenix    -- ^ FenixOS
+  | CloudABI -- ^ Nuxi CloudABI
+  | OpenVOS  -- ^ Stratus Technologies OpenVOS
   | OSExt Word8
 
 instance Put OS where
@@ -173,22 +189,30 @@ instance Put OS where
     OpenVOS  -> 18
     OSExt os -> os
 
+
+-- | Elf file type 
 data EType
-  = ENone
-  | ERel
-  | EExec
-  | EDyn
-  | ECore
+  = ENone -- ^ No file type
+  | ERel  -- ^ Relocatable file
+  | EExec -- ^ Executable file
+  | EDyn  -- ^ Shared object file
+  | ECore -- ^ Core file. Contents are unspecified by ELF
   deriving Enum
   deriving Put via U16 EType
 
 data Machine
-  = MachineNone
-  | Intel386
-  | Amd64
+  = MachineNone -- ^ No processor specified
+  | Intel386    -- ^ x86-32
+  | Amd64       -- ^ x86-64
 
 instance Put Machine where
   put = u16 . \case
     MachineNone -> 0
     Intel386    -> 3
     Amd64       -> 62
+
+
+
+-- | Processor specific flags
+newtype Flags = Flags Word32
+  deriving newtype Put 
